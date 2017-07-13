@@ -1,0 +1,63 @@
+
+---
+
+- hosts: blogserver
+  roles:
+    - webserver
+    - php
+    - mariadb
+
+- hosts: blogserver
+  tasks:
+      - name: get wp software
+        get_url:
+            url: https://wordpress.org/latest.tar.gz
+            dest: /var/tmp/wordpress.tar.gz
+            validate_certs: false
+      - name: unpack wp software
+        unarchive:
+            src: /var/tmp/wordpress.tar.gz
+            dest: /var/tmp
+            remote_src: true
+      - name: mv unpacked software to top-level web dir
+        shell: mv /var/tmp/wordpress/* /var/www/html
+        args:
+            creates: /var/www/html/wp-settings.php
+      - name: add wordpress database
+        mysql_db:
+            name: wordpress
+      - name: add wordpress user
+        mysql_user:
+            name: wordpress
+            password: wordpress
+            priv: "wordpress:ALL/wordpress.*:ALL"
+      - name: configure wordpress
+        copy:
+            src: files/wp-config.php
+            dest: /var/www/html/wp-config.php
+      - name: configure webserver
+        template:
+            src: templates/blog.conf.j2
+            dest: /etc/nginx/sites-available/blog.conf
+        notify: reload nginx
+      - name: delete default website
+        file: 
+            path: /etc/nginx/sites-enabled/default
+            state: absent
+        notify: reload nginx
+      - name: enable blog webserving
+        file: 
+            src: ../sites-available/blog.conf
+            dest: /etc/nginx/sites-enabled/blog.conf
+            state: link
+        notify: reload nginx
+      - name: copy the contents
+        copy:
+            src: files/site/
+            dest: /var/www/html
+            mode: 0644
+            owner: www-data
+  handlers:
+      - name: reload nginx
+        service: name=nginx state=restarted
+

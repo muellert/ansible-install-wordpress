@@ -1,0 +1,9 @@
+
+---
+
+- name: install mariadb server
+  apt: name=mariadb-server state=present
+
+- name: install python module (we need it for management)
+  apt: name=python-mysqldb state=present
+

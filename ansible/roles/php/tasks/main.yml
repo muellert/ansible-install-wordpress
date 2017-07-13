@@ -1,0 +1,12 @@
+---
+
+- name: install the php-fpm package
+  apt:
+      name: php-fpm
+      state: present
+
+- name: install db driver
+  apt:
+      name: php-mysql
+      state: present
+
